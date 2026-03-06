@@ -17,14 +17,14 @@ window.DEFAULT_APP_CONFIG = {
     particleImage: 'assets/pngegg.png',
 
     sphereImages: [
-        'assets/circle/anh1.png', 'assets/circle/anh2.png', 'assets/circle/anh3.jpg', 'assets/circle/anh4.jpg',
+        'assets/circle/anh1.jpg', 'assets/circle/anh2.jpg', 'assets/circle/anh3.jpg', 'assets/circle/anh4.jpg',
         'assets/circle/anh5.jpg', 'assets/circle/anh6.jpg', 'assets/circle/anh7.jpg', 'assets/circle/anh8.jpg',
         'assets/circle/anh9.jpg', 'assets/circle/anh10.jpg', 'assets/circle/anh11.jpg', 'assets/circle/anh12.jpg',
         'assets/circle/anh13.jpg', 'assets/circle/anh14.jpg', 'assets/circle/anh15.jpg', 'assets/circle/anh16.jpg',
-        'assets/circle/anh17.jpg', 'assets/circle/anh18.jpg', 'assets/circle/anh19.jpg', 'assets/circle/anh20.jpeg',
+        'assets/circle/anh17.jpg', 'assets/circle/anh18.jpeg', 'assets/circle/anh19.jpeg', 'assets/circle/anh20.jpeg',
         'assets/circle/anh21.jpeg', 'assets/circle/anh22.jpeg', 'assets/circle/anh23.jpeg', 'assets/circle/anh24.jpeg',
-        'assets/circle/anh25.jpeg', 'assets/circle/anh26.jpeg', 'assets/circle/anh27.jpeg', 'assets/circle/anh28.jpeg',
-        'assets/circle/anh29.jpeg',
+        'assets/circle/anh25.jpeg', 'assets/circle/anh26.jpeg', 'assets/circle/anh27.jpeg', 'assets/circle/anh28.jpg',
+        'assets/circle/anh29.jpg',
         'assets/circle/video1.mp4', 'assets/circle/video2.mp4', 'assets/circle/video3.mp4', 'assets/circle/video4.mp4', 'assets/circle/video5.mp4'
     ],
 
