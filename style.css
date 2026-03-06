@@ -61,15 +61,20 @@ canvas {
 #start-label {
     font-family: "Pacifico", cursive;
     color: rgba(255, 182, 193, 0.85);
-    font-size: 13px;
-    text-shadow: 0 0 8px rgba(255, 105, 180, 0.6);
+    font-size: 22px;
+    text-shadow: 0 0 15px rgba(255, 105, 180, 1), 0 0 5px #fff;
     letter-spacing: 1px;
+    z-index: 999;
+}
+
+#start-wrap {
+    z-index: 999;
 }
 
 #start-wrap svg {
-    width: 68px;
-    height: 68px;
-    filter: drop-shadow(0 0 8px rgba(255, 105, 180, 0.45));
+    width: 100px;
+    height: 100px;
+    filter: drop-shadow(0 0 15px rgba(255, 105, 180, 0.9));
 }
 
 .ring-pulse {

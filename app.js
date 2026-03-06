@@ -409,9 +409,9 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
         if (isDesktop) {
-            camera.position.set(0, 6, 18);
+            camera.position.set(3, 4, 5);
         } else {
-            camera.position.set(0, 8, 26);
+            camera.position.set(4, 5, 7);
         }
         camera.lookAt(scene.position);
         updateProgress(5);
@@ -424,7 +424,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; controls.dampingFactor = 0.05;
-        controls.minDistance = 5; controls.maxDistance = 80;
+        controls.minDistance = 1; controls.maxDistance = 80;
         controls.autoRotate = false;
         updateProgress(5);
 
@@ -621,17 +621,28 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const count = AUTOPLAY_TEXT_COUNT;
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
+        // Trái tim 3D tròn mập kiểu glossy heart icon
+        // Dùng implicit 3D heart surface: (x² + 9z²/4 + y² - 1)³ - x²y³ - 9z²y³/80 ≤ 0
+        const heartSize = 8; // scale lên cho vừa scene
+        for (let i = 0; i < count;) {
             const i3 = i * 3;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const r = 3 + Math.random() * 14;
-            positions[i3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i3 + 2] = r * Math.cos(phi);
-            const hue = 330 + Math.random() * 30;
-            const c = new THREE.Color().setHSL(hue / 360, 0.8, 0.45 + Math.random() * 0.2);
-            colors[i3] = c.r; colors[i3 + 1] = c.g; colors[i3 + 2] = c.b;
+            // Random point trong bounding box
+            const x = (Math.random() - 0.5) * 3.0;   // [-1.5, 1.5]
+            const y = Math.random() * 2.8 - 1.3;      // [-1.3, 1.5]
+            const z = (Math.random() - 0.5) * 1.6;    // [-0.8, 0.8]
+            // Kiểm tra nằm trong trái tim 3D
+            const x2 = x * x, y2 = y * y, z2 = z * z;
+            const inner = x2 + (9 / 4) * z2 + y2 - 1;
+            const val = inner * inner * inner - x2 * y2 * y - (9 / 80) * z2 * y2 * y;
+            if (val <= 0) {
+                positions[i3] = x * heartSize;
+                positions[i3 + 1] = y * heartSize;
+                positions[i3 + 2] = z * heartSize;
+                const hue = 330 + Math.random() * 30;
+                const c = new THREE.Color().setHSL(hue / 360, 0.8, 0.45 + Math.random() * 0.2);
+                colors[i3] = c.r; colors[i3 + 1] = c.g; colors[i3 + 2] = c.b;
+                i++;
+            }
         }
         createBackgroundScatterLayer();
         bloomPass.strength = 0.5;
@@ -748,6 +759,25 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     async function startAutoPlay() {
         isScatterPhase = false;
+        // Zoom camera ra xa mượt mà khi bắt đầu
+        const targetPos = isDesktop
+            ? new THREE.Vector3(0, 6, 18)
+            : new THREE.Vector3(0, 8, 26);
+        const startPos = camera.position.clone();
+        const zoomDuration = 2000; // 2 giây
+        const zoomStart = Date.now();
+        function animateZoom() {
+            const elapsed = Date.now() - zoomStart;
+            const t = Math.min(1, elapsed / zoomDuration);
+            // Ease-out cubic cho mượt
+            const ease = 1 - Math.pow(1 - t, 3);
+            camera.position.lerpVectors(startPos, targetPos, ease);
+            camera.lookAt(scene.position);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            if (t < 1) requestAnimationFrame(animateZoom);
+        }
+        animateZoom();
         const morphTexts = (cfg.morphTexts && cfg.morphTexts.length) ? cfg.morphTexts : ['happy', "women's day", 'em iu'];
         for (const text of morphTexts) {
             showText(text);
@@ -768,6 +798,21 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 }
             }
             await sleep(MORPH_WAIT_MS + 500);
+
+            // DỪNG LẠI TẠI ĐÂY: Chờ user click mới đi tiếp
+            await new Promise(resolve => {
+                const hint = document.getElementById('sphere-click-hint');
+                if (hint) {
+                    hint.innerText = "Click để xem ảnh";
+                    hint.classList.add('visible');
+                }
+                const onUserClick = () => {
+                    window.removeEventListener('pointerup', onUserClick);
+                    if (hint) hint.classList.remove('visible');
+                    resolve();
+                };
+                window.addEventListener('pointerup', onUserClick);
+            });
 
             // Hiển thị ảnh 2D đè lên canvas (không qua bloom → nét, không lóa)
             isMorphing = false;
@@ -1056,55 +1101,26 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const total = 40;
         const glowTex = spGlowTexture(128);
 
-        // ── Tạo vị trí hình trái tim ĐẦY ĐẶN (viền + bên trong) ──
-        // x = 16 sin³(t), y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
-        function heartPos(t, scale) {
-            const x = 16 * Math.pow(Math.sin(t), 3);
-            const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            return { x: x * scale, y: y * scale };
-        }
-
-        const heartScale = 0.75;
+        // ── Trái tim 3D tròn MẬP (giảm hệ số Z cho dày) cho ảnh bay ──
+        const imgHeartSize = 6;
+        const zCoeff = 0.6; // nhỏ = dày hơn (gốc 2.25)
         const positions = [];
-
-        // Lớp 1: Viền ngoài trái tim (18 ảnh)
-        const outerCount = 18;
-        for (let i = 0; i < outerCount; i++) {
-            const t = (i / outerCount) * Math.PI * 2;
-            const { x, y } = heartPos(t, heartScale);
-            const jx = (Math.random() - 0.5) * 0.4;
-            const jy = (Math.random() - 0.5) * 0.4;
-            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 6 });
-        }
-
-        // Lớp 2: Vòng giữa (thu nhỏ 65%) — 12 ảnh
-        const midCount = 12;
-        for (let i = 0; i < midCount; i++) {
-            const t = (i / midCount) * Math.PI * 2 + 0.15;
-            const { x, y } = heartPos(t, heartScale * 0.65);
-            const jx = (Math.random() - 0.5) * 0.5;
-            const jy = (Math.random() - 0.5) * 0.5;
-            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 5 });
-        }
-
-        // Lớp 3: Lõi trong (thu nhỏ 30%) — 7 ảnh
-        const innerCount = 7;
-        for (let i = 0; i < innerCount; i++) {
-            const t = (i / innerCount) * Math.PI * 2 + 0.3;
-            const { x, y } = heartPos(t, heartScale * 0.3);
-            const jx = (Math.random() - 0.5) * 0.4;
-            const jy = (Math.random() - 0.5) * 0.4;
-            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 4 });
-        }
-
-        // Lớp 4: Tâm trái tim — 3 ảnh trung tâm
-        for (let i = 0; i < 3; i++) {
-            const angle = (i / 3) * Math.PI * 2;
-            positions.push({
-                x: Math.cos(angle) * 0.8 + (Math.random() - 0.5) * 0.3,
-                y: Math.sin(angle) * 0.8 + 1 + (Math.random() - 0.5) * 0.3,
-                z: (Math.random() - 0.5) * 3
-            });
+        let placed = 0;
+        while (placed < total) {
+            const x = (Math.random() - 0.5) * 3.0;
+            const y = Math.random() * 2.8 - 1.3;
+            const z = (Math.random() - 0.5) * 3.2;  // mở rộng Z
+            const x2 = x * x, y2 = y * y, z2 = z * z;
+            const inner = x2 + zCoeff * z2 + y2 - 1;
+            const val = inner * inner * inner - x2 * y2 * y - (zCoeff / 20) * z2 * y2 * y;
+            if (val <= 0) {
+                positions.push({
+                    x: x * imgHeartSize,
+                    y: y * imgHeartSize,
+                    z: z * imgHeartSize
+                });
+                placed++;
+            }
         }
 
         for (let i = 0; i < total; i++) {
