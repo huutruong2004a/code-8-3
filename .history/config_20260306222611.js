@@ -12,20 +12,26 @@ window.DEFAULT_APP_CONFIG = {
     passcodeSubtitle: 'Nhập ngày hôm nay để mở quà nhé',
     passcode: '0803',  // Ngày sinh hoặc mã bí mật
 
-    morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thương'],
+    morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thươngs'],
 
     particleImage: 'assets/pngegg.png',
 
     sphereImages: [
-        'assets/circle/anh1.png', 'assets/circle/anh2.png', 'assets/circle/anh3.jpg', 'assets/circle/anh4.jpg',
-        'assets/circle/anh5.jpg', 'assets/circle/anh6.jpg', 'assets/circle/anh7.jpg', 'assets/circle/anh8.jpg',
-        'assets/circle/anh9.jpg', 'assets/circle/anh10.jpg', 'assets/circle/anh11.jpg', 'assets/circle/anh12.jpg',
-        'assets/circle/anh13.jpg', 'assets/circle/anh14.jpg', 'assets/circle/anh15.jpg', 'assets/circle/anh16.jpg',
-        'assets/circle/anh17.jpg', 'assets/circle/anh18.jpg', 'assets/circle/anh19.jpg', 'assets/circle/anh20.jpeg',
-        'assets/circle/anh21.jpeg', 'assets/circle/anh22.jpeg', 'assets/circle/anh23.jpeg', 'assets/circle/anh24.jpeg',
-        'assets/circle/anh25.jpeg', 'assets/circle/anh26.jpeg', 'assets/circle/anh27.jpeg', 'assets/circle/anh28.jpeg',
-        'assets/circle/anh29.jpeg',
-        'assets/circle/video1.mp4', 'assets/circle/video2.mp4', 'assets/circle/video3.mp4', 'assets/circle/video4.mp4', 'assets/circle/video5.mp4'
+        'assets/video1.mp4', // Ảnh động mới tải lên
+        'assets/anh1.jpg',
+        'assets/anh2.jpg',
+        'assets/anh3.jpg',
+        'assets/anh4.jpg',
+        'assets/anh5.jpg',
+        'assets/anh6.jpg',
+        'assets/anh7.jpg',
+        'assets/anh8.jpeg',
+        'assets/anh9.jpeg',
+        'assets/anh10.jpeg',
+        'assets/anh11.jpeg',
+        'assets/anh12.jpeg',
+        'assets/anh13.jpeg',
+        'assets/anh14.jpeg'
     ],
 
     // ── Nội dung lá thư ─────────────────────────────────────────────

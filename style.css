@@ -871,13 +871,15 @@ canvas {
     }
 }
 
-.lightbox-content img {
+.lightbox-content img,
+.lightbox-content video {
     display: block;
     max-width: 90vw;
     max-height: 85vh;
     width: auto;
     height: auto;
     object-fit: contain;
+    border-radius: 8px;
 }
 
 .lightbox-close {
