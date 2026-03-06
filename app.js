@@ -799,6 +799,21 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             }
             await sleep(MORPH_WAIT_MS + 500);
 
+            // DỪNG LẠI TẠI ĐÂY: Chờ user click mới đi tiếp
+            await new Promise(resolve => {
+                const hint = document.getElementById('sphere-click-hint');
+                if (hint) {
+                    hint.innerText = "Click để xem ảnh";
+                    hint.classList.add('visible');
+                }
+                const onUserClick = () => {
+                    window.removeEventListener('pointerup', onUserClick);
+                    if (hint) hint.classList.remove('visible');
+                    resolve();
+                };
+                window.addEventListener('pointerup', onUserClick);
+            });
+
             // Hiển thị ảnh 2D đè lên canvas (không qua bloom → nét, không lóa)
             isMorphing = false;
             morphImageOverlay = createMorphImageOverlay(_preloadedImg);
