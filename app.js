@@ -110,7 +110,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
     const CONFIG = {
-        particleCount: 25000,
+        particleCount: 27000,
         imageParticleCount: 400000,
         textParticleCountMin: 6000,
         textParticleCountMax: 120000,
@@ -124,10 +124,10 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         noiseMaxStrength: 2.8,
         morphDuration: 2.0,
         particleSizeRange: [0.06, 0.18],
-        imageParticleSizeRange: [0.038, 0.052],
-        bloomStrength: 0.9,
-        bloomRadius: 0.5,
-        bloomThreshold: 0.15,
+        imageParticleSizeRange: [0.042, 0.058],
+        bloomStrength: 1.4,
+        bloomRadius: 0.7,
+        bloomThreshold: 0.08,
         idleFlowStrength: 0.25,
         idleFlowSpeed: 0.08,
         idleRotationSpeed: 0.02,
@@ -1053,21 +1053,64 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     function spCreateFloatingImages() {
         spFloatingGroup = new THREE.Group(); scene.add(spFloatingGroup);
-        const total = 40, grid = 16, used = [];
+        const total = 40;
         const glowTex = spGlowTexture(128);
-        function validPos(x, y, z, d) { return used.every(p => Math.hypot(x - p.x, y - p.y, z - p.z) >= d); }
-        function findPos(size) {
-            const d = size * 1.5 + 1;
-            for (let i = 0; i < 100; i++) {
-                const x = (Math.random() - .5) * grid, y = (Math.random() - .5) * grid, z = (Math.random() - .5) * grid;
-                if (validPos(x, y, z, d)) { used.push({ x, y, z }); return { x, y, z }; }
-            }
-            const a = Math.random() * Math.PI * 2, dist = grid / 2 + Math.random() * 2;
-            return { x: Math.cos(a) * dist, y: (Math.random() - .5) * grid, z: Math.sin(a) * dist };
+
+        // ── Tạo vị trí hình trái tim ĐẦY ĐẶN (viền + bên trong) ──
+        // x = 16 sin³(t), y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
+        function heartPos(t, scale) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            return { x: x * scale, y: y * scale };
         }
+
+        const heartScale = 0.75;
+        const positions = [];
+
+        // Lớp 1: Viền ngoài trái tim (18 ảnh)
+        const outerCount = 18;
+        for (let i = 0; i < outerCount; i++) {
+            const t = (i / outerCount) * Math.PI * 2;
+            const { x, y } = heartPos(t, heartScale);
+            const jx = (Math.random() - 0.5) * 0.4;
+            const jy = (Math.random() - 0.5) * 0.4;
+            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 6 });
+        }
+
+        // Lớp 2: Vòng giữa (thu nhỏ 65%) — 12 ảnh
+        const midCount = 12;
+        for (let i = 0; i < midCount; i++) {
+            const t = (i / midCount) * Math.PI * 2 + 0.15;
+            const { x, y } = heartPos(t, heartScale * 0.65);
+            const jx = (Math.random() - 0.5) * 0.5;
+            const jy = (Math.random() - 0.5) * 0.5;
+            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 5 });
+        }
+
+        // Lớp 3: Lõi trong (thu nhỏ 30%) — 7 ảnh
+        const innerCount = 7;
+        for (let i = 0; i < innerCount; i++) {
+            const t = (i / innerCount) * Math.PI * 2 + 0.3;
+            const { x, y } = heartPos(t, heartScale * 0.3);
+            const jx = (Math.random() - 0.5) * 0.4;
+            const jy = (Math.random() - 0.5) * 0.4;
+            positions.push({ x: x + jx, y: y + jy, z: (Math.random() - 0.5) * 4 });
+        }
+
+        // Lớp 4: Tâm trái tim — 3 ảnh trung tâm
+        for (let i = 0; i < 3; i++) {
+            const angle = (i / 3) * Math.PI * 2;
+            positions.push({
+                x: Math.cos(angle) * 0.8 + (Math.random() - 0.5) * 0.3,
+                y: Math.sin(angle) * 0.8 + 1 + (Math.random() - 0.5) * 0.3,
+                z: (Math.random() - 0.5) * 3
+            });
+        }
+
         for (let i = 0; i < total; i++) {
             const tex = spTextures[i % spTextures.length];
-            const sv = 0.5 + Math.random() * 2, w = 1.5 * sv, h = 1 * sv, cr = 0.15 * sv;
+            // Ảnh to hơn, cảm giác bay quanh người
+            const sv = 1.2 + Math.random() * 1.0, w = 1.5 * sv, h = 1 * sv, cr = 0.15 * sv;
             const ig = new THREE.Group();
             const goMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
             ig.add(new THREE.Mesh(spRoundedRectGeo(w * 2.2, h * 2.2, cr * 2.2), goMat));
@@ -1077,13 +1120,13 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             ig.add(new THREE.Mesh(spRoundedRectGeo(w, h, cr), iMat));
             const tPhi = Math.acos(2 * Math.random() - 1), tTheta = Math.random() * Math.PI * 2;
             ig.position.set(SP_RADIUS * .5 * Math.sin(tPhi) * Math.cos(tTheta), SP_RADIUS * .5 * Math.cos(tPhi), SP_RADIUS * .5 * Math.sin(tPhi) * Math.sin(tTheta));
-            const tp = findPos(Math.max(w, h));
+            const tp = positions[i];
             ig.userData = {
                 startPos: ig.position.clone(), targetPos: new THREE.Vector3(tp.x, tp.y, tp.z),
-                floatSpeedY: 0.3 + Math.random() * 0.5, floatAmplY: 0.1 + Math.random() * 0.2,
+                floatSpeedY: 0.3 + Math.random() * 0.5, floatAmplY: 0.08 + Math.random() * 0.12,
                 floatPhase: Math.random() * Math.PI * 2, delay: Math.random() * 0.5,
                 basePos: new THREE.Vector3(tp.x, tp.y, tp.z), iMat, gMat, goMat,
-                driftSpeed: 0.002 + Math.random() * 0.003, baseZ: tp.z,
+                driftSpeed: 0.003 + Math.random() * 0.003, baseZ: tp.z,
                 imageIndex: i % spTextures.length
             };
             spFloatingGroup.add(ig); spFloatingImages.push(ig);
@@ -1095,7 +1138,13 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         spIsExploded = true; spExplosionProgress = 0; spFadeProgress = 0;
         spMeshes.forEach(m => { if (m.material) m.material.transparent = true; });
         spExplosionStartTime = Date.now();
-        controls.autoRotate = false; controls.enableRotate = true; controls.maxDistance = 14;
+        controls.autoRotate = false; controls.enableRotate = true; controls.maxDistance = 30;
+        controls.minDistance = 2;
+        // Camera ở gần, giữa trái tim → cảm giác ảnh bay quanh mình
+        camera.position.set(0, 1, 6);
+        camera.lookAt(0, 1, 0);
+        controls.target.set(0, 1, 0);
+        controls.update();
         if (enableSphereFlyingImages) {
             spCreateFloatingImages();
         }
@@ -1655,5 +1704,22 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     // Listener cho click phong bì lá thư (hoạt động cả khi không có sphere)
     document.getElementById('letter-envelope-img')?.addEventListener('click', handleLetterEnvelopeClick);
+
+    // Bấm ra ngoài (toàn màn hình overlay) cũng mở thư
+    const cupidOverlay = document.getElementById('cupid-letter-overlay');
+    if (cupidOverlay) {
+        function onOverlayTap(e) {
+            if (cupidLetterState === 'showingLetter') return;
+            if (e.target.closest('#cupid-letter-frame')) return;
+            handleLetterEnvelopeClick();
+        }
+        cupidOverlay.addEventListener('click', onOverlayTap);
+        cupidOverlay.addEventListener('touchend', function (e) {
+            if (cupidLetterState === 'letterImage') {
+                e.preventDefault();
+                onOverlayTap(e);
+            }
+        }, { passive: false });
+    }
 
 })(); // end async IIFE

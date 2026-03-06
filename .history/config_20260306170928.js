@@ -12,7 +12,7 @@ window.DEFAULT_APP_CONFIG = {
     passcodeSubtitle: 'Nhập ngày hôm nay để mở quà nhé',
     passcode: '0803',  // Ngày sinh hoặc mã bí mật
 
-    morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thươngs'],
+    morphTexts: ['Happy', "Women's Day", 'Vĩ Cầm'],
 
     particleImage: 'assets/pngegg.png',
 
@@ -45,7 +45,10 @@ window.DEFAULT_APP_CONFIG = {
     bgVolume: 0.55
 };
 
-
+// Chuẩn hóa luồng lấy config:
+// - preview=1  -> lấy từ localStorage (editor)
+// - ?<websiteId> -> gọi API womenday
+// - không gì cả -> dùng DEFAULT_APP_CONFIG
 (function () {
     const params = new URLSearchParams(location.search);
     const preview = params.get('preview');
