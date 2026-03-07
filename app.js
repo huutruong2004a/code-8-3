@@ -442,6 +442,9 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         updateProgress(40);
 
         isInitialized = true;
+        // Expose refs cho gesture-control.js
+        window._appCamera = camera;
+        window._appControls = controls;
         animate();
 
         // Rẽ nhánh theo feature flags
@@ -928,6 +931,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             const positions = particlesGeometry.attributes.position.array;
             const effectStrengths = particlesGeometry.attributes.aEffectStrength.array;
             updateIdleAnimation(positions, effectStrengths, elapsedTime, deltaTime);
+            if (window.applyGestureForce) window.applyGestureForce(positions, sourcePositions, particleCount, camera);
             particlesGeometry.attributes.position.needsUpdate = true;
         }
         if (backgroundParticlesGeometry && backgroundSourcePositions) {
@@ -940,6 +944,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 pos[i3 + 1] = sourceVec.y + noise3D(sourceVec.y * 0.4, sourceVec.z * 0.4, elapsedTime * 0.18) * drift;
                 pos[i3 + 2] = sourceVec.z + noise3D(sourceVec.z * 0.4, sourceVec.x * 0.4, elapsedTime * 0.18) * drift;
             }
+            if (window.applyGestureForce) window.applyGestureForce(pos, backgroundSourcePositions, BACKGROUND_SCATTER_COUNT, camera);
             backgroundParticlesGeometry.attributes.position.needsUpdate = true;
         }
         if (morphImageOverlay && morphOverlayFadeStartTime != null && morphImageOverlay.material) {
