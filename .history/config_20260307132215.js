@@ -4,12 +4,13 @@ window.DEFAULT_APP_CONFIG = {
     appTitle: 'Món Quà Nhỏ',
     appIcon: 'assets/images/icons/couple.png',
 
+    // ── Trí tuệ AI ─────────────────────────────────────────────────
     devBypassKey: '9ac7ec230e0e4513578f309d6d3579ad',
 
     // ── Màn hình Passcode ──────────────────────────────────────────
     passcodeTitle: 'Nhập Mật Khẩu',
     passcodeSubtitle: 'Nhập ngày hôm nay để mở quà nhé',
-    passcode: '0803', 
+    passcode: '0803',  // Ngày sinh hoặc mã bí mật
 
     morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thương'],
 
@@ -29,14 +30,14 @@ window.DEFAULT_APP_CONFIG = {
 
     // ── Nội dung lá thư ─────────────────────────────────────────────
     letter: {
-        text: "Chúc mừng ngày 8/3 Vĩ Cầm xinh đẹp!\n\n Chúc em 3 đừng, 3 không, 3 nhớ. \n Đừng buồn vì những chuyện không vui, đừng quá khắt khe với bản thân, đừng nghĩ rằng chỉ có một mình. \n Không cảm thấy cô đơn, không áp lực quá nhiều và không một mình gánh cả thế giới. \n Nhớ luôn yêu thương bản thân, nhớ luôn giữ nụ cười trên môi và nhớ là có một người đáng yêu đang chờ em.\n",
-        image: 'assets/circle/hoa.JPG',
-        caption: 'Bó hoa đáng iu nhất trần đời ♥'
+        text: "Chúc mừng ngày 8/3 Cầm xinh đẹp!\n\nEm iu, chúc em luôn xinh đẹp và hạnh phúc.",
+        image: '',
+        caption: '♥'
     },
 
     // ── Nhạc nền ────────────────────────────────────────────────────
     bgMusic: 'assets/music/bgmucsic.mp3',
-    bgVolume: 0.50
+    bgVolume: 0.55
 };
 
 

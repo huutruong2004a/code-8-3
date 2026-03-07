@@ -4,6 +4,7 @@ window.DEFAULT_APP_CONFIG = {
     appTitle: 'Món Quà Nhỏ',
     appIcon: 'assets/images/icons/couple.png',
 
+    // ── Trí tuệ AI ─────────────────────────────────────────────────
     devBypassKey: '9ac7ec230e0e4513578f309d6d3579ad',
 
     // ── Màn hình Passcode ──────────────────────────────────────────

@@ -4,12 +4,13 @@ window.DEFAULT_APP_CONFIG = {
     appTitle: 'Món Quà Nhỏ',
     appIcon: 'assets/images/icons/couple.png',
 
+    // ── Trí tuệ AI ─────────────────────────────────────────────────
     devBypassKey: '9ac7ec230e0e4513578f309d6d3579ad',
 
     // ── Màn hình Passcode ──────────────────────────────────────────
     passcodeTitle: 'Nhập Mật Khẩu',
     passcodeSubtitle: 'Nhập ngày hôm nay để mở quà nhé',
-    passcode: '0803', 
+    passcode: '0803',  // Ngày sinh hoặc mã bí mật
 
     morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thương'],
 
