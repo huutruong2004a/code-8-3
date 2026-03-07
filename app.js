@@ -812,12 +812,61 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                     hint.innerText = "Click để xem ảnh";
                     hint.classList.add('visible');
                 }
-                const onUserClick = () => {
-                    window.removeEventListener('pointerup', onUserClick);
+
+                const canvasEl = renderer.domElement;
+                let isDown = false;
+                let startX = 0, startY = 0;
+                let wasDrag = false;
+
+                const downHandler = (e) => {
+                    const c = e.touches?.[0] || e;
+                    startX = c.clientX;
+                    startY = c.clientY;
+                    isDown = true;
+                    wasDrag = false;
+                };
+
+                const moveHandler = (e) => {
+                    if (!isDown) return;
+                    const c = e.touches?.[0] || e;
+                    if (Math.hypot(c.clientX - startX, c.clientY - startY) > 6) {
+                        wasDrag = true;
+                    }
+                };
+
+                const upHandler = (e) => {
+                    isDown = false;
+                    if (wasDrag) {
+                        wasDrag = false;
+                        return;
+                    }
+                    canvasEl.removeEventListener('mousedown', downHandler);
+                    canvasEl.removeEventListener('mousemove', moveHandler);
+                    canvasEl.removeEventListener('mouseup', upHandler);
+                    canvasEl.removeEventListener('mouseleave', leaveHandler);
+
+                    canvasEl.removeEventListener('touchstart', downHandler);
+                    canvasEl.removeEventListener('touchmove', moveHandler);
+                    canvasEl.removeEventListener('touchend', upHandlerTouch);
+
                     if (hint) hint.classList.remove('visible');
                     resolve();
                 };
-                window.addEventListener('pointerup', onUserClick);
+
+                const leaveHandler = () => { isDown = false; };
+                const upHandlerTouch = (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    upHandler(e);
+                };
+
+                canvasEl.addEventListener('mousedown', downHandler);
+                canvasEl.addEventListener('mousemove', moveHandler);
+                canvasEl.addEventListener('mouseup', upHandler);
+                canvasEl.addEventListener('mouseleave', leaveHandler);
+
+                canvasEl.addEventListener('touchstart', downHandler, { passive: true });
+                canvasEl.addEventListener('touchmove', moveHandler, { passive: true });
+                canvasEl.addEventListener('touchend', upHandlerTouch, { passive: false });
             });
 
             // Hiển thị ảnh 2D đè lên canvas (không qua bloom → nét, không lóa)

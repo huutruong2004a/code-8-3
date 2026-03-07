@@ -9,7 +9,7 @@ window.DEFAULT_APP_CONFIG = {
     // ── Màn hình Passcode ──────────────────────────────────────────
     passcodeTitle: 'Nhập Mật Khẩu',
     passcodeSubtitle: 'Nhập ngày hôm nay để mở quà nhé',
-    passcode: '0803', 
+    passcode: '0803',
 
     morphTexts: ['Chúc mừng', "Ngày Quốc tê Phụ nữ", 'Vĩ Cầm dễ thương'],
 
