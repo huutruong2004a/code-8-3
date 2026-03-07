@@ -457,7 +457,7 @@ canvas {
     pointer-events: none;
     border-bottom-left-radius: clamp(12px, 2.5vw, 20px);
     border-bottom-right-radius: clamp(12px, 2.5vw, 20px);
-    background: url('assets/nenthugocduoi.png') no-repeat bottom center;
+    background: url('/assets/nenthugocduoi.png') no-repeat bottom center;
     background-size: 100% auto;
 }
 
