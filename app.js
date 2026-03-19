@@ -110,7 +110,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
     const CONFIG = {
-        particleCount: 25000,
+        particleCount: 27000,
         imageParticleCount: 400000,
         textParticleCountMin: 6000,
         textParticleCountMax: 120000,
@@ -124,10 +124,10 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         noiseMaxStrength: 2.8,
         morphDuration: 2.0,
         particleSizeRange: [0.06, 0.18],
-        imageParticleSizeRange: [0.038, 0.052],
-        bloomStrength: 0.9,
-        bloomRadius: 0.5,
-        bloomThreshold: 0.15,
+        imageParticleSizeRange: [0.042, 0.058],
+        bloomStrength: 1.4,
+        bloomRadius: 0.7,
+        bloomThreshold: 0.08,
         idleFlowStrength: 0.25,
         idleFlowSpeed: 0.08,
         idleRotationSpeed: 0.02,
@@ -409,9 +409,9 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
         if (isDesktop) {
-            camera.position.set(0, 6, 18);
+            camera.position.set(3, 4, 5);
         } else {
-            camera.position.set(0, 8, 26);
+            camera.position.set(4, 5, 7);
         }
         camera.lookAt(scene.position);
         updateProgress(5);
@@ -424,7 +424,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; controls.dampingFactor = 0.05;
-        controls.minDistance = 5; controls.maxDistance = 80;
+        controls.minDistance = 1; controls.maxDistance = 80;
         controls.autoRotate = false;
         updateProgress(5);
 
@@ -442,6 +442,9 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         updateProgress(40);
 
         isInitialized = true;
+        // Expose refs cho gesture-control.js
+        window._appCamera = camera;
+        window._appControls = controls;
         animate();
 
         // Rẽ nhánh theo feature flags
@@ -478,7 +481,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     // ── AutoPlay sequence ──────────────────────────────────────────────
     const AUTOPLAY_TEXT_COUNT = 80000;
-    const BACKGROUND_SCATTER_COUNT = 5000;
+    const BACKGROUND_SCATTER_COUNT = 50000;
     const SEQUENCE_HOLD_MS = 1000;
     const MORPH_WAIT_MS = 2200;
     /** Thời gian ảnh overlay fade từ mờ → rõ (ms). */
@@ -533,6 +536,8 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             depthTest: false,
             depthWrite: false,
             toneMapped: false,
+            side: THREE.DoubleSide,
+            alphaTest: 0.05
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(0, 0, 0);
@@ -567,12 +572,16 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const effectStrengths = new Float32Array(count);
         for (let i = 0; i < count; i++) {
             const i3 = i * 3;
+            // Phân bổ trên toàn bộ màn hình rộng với bán kính rất lớn
+            const r = 10 + Math.random() * 50;
+            // Random sphere points
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            const r = 3 + Math.random() * 14;
+
             positions[i3] = r * Math.sin(phi) * Math.cos(theta);
             positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
             positions[i3 + 2] = r * Math.cos(phi);
+
             const hue = 330 + Math.random() * 30;
             const c = new THREE.Color().setHSL(hue / 360, 0.8, 0.4 + Math.random() * 0.2);
             colors[i3] = c.r; colors[i3 + 1] = c.g; colors[i3 + 2] = c.b;
@@ -621,17 +630,28 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const count = AUTOPLAY_TEXT_COUNT;
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
+        // Trái tim 3D tròn mập kiểu glossy heart icon
+        // Dùng implicit 3D heart surface: (x² + 9z²/4 + y² - 1)³ - x²y³ - 9z²y³/80 ≤ 0
+        const heartSize = 8; // scale lên cho vừa scene
+        for (let i = 0; i < count;) {
             const i3 = i * 3;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const r = 3 + Math.random() * 14;
-            positions[i3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i3 + 2] = r * Math.cos(phi);
-            const hue = 330 + Math.random() * 30;
-            const c = new THREE.Color().setHSL(hue / 360, 0.8, 0.45 + Math.random() * 0.2);
-            colors[i3] = c.r; colors[i3 + 1] = c.g; colors[i3 + 2] = c.b;
+            // Random point trong bounding box
+            const x = (Math.random() - 0.5) * 3.0;   // [-1.5, 1.5]
+            const y = Math.random() * 2.8 - 1.3;      // [-1.3, 1.5]
+            const z = (Math.random() - 0.5) * 1.6;    // [-0.8, 0.8]
+            // Kiểm tra nằm trong trái tim 3D
+            const x2 = x * x, y2 = y * y, z2 = z * z;
+            const inner = x2 + (9 / 4) * z2 + y2 - 1;
+            const val = inner * inner * inner - x2 * y2 * y - (9 / 80) * z2 * y2 * y;
+            if (val <= 0) {
+                positions[i3] = x * heartSize;
+                positions[i3 + 1] = y * heartSize;
+                positions[i3 + 2] = z * heartSize;
+                const hue = 330 + Math.random() * 30;
+                const c = new THREE.Color().setHSL(hue / 360, 0.8, 0.45 + Math.random() * 0.2);
+                colors[i3] = c.r; colors[i3 + 1] = c.g; colors[i3 + 2] = c.b;
+                i++;
+            }
         }
         createBackgroundScatterLayer();
         bloomPass.strength = 0.5;
@@ -748,6 +768,25 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     async function startAutoPlay() {
         isScatterPhase = false;
+        // Zoom camera ra xa mượt mà khi bắt đầu
+        const targetPos = isDesktop
+            ? new THREE.Vector3(0, 6, 18)
+            : new THREE.Vector3(0, 8, 26);
+        const startPos = camera.position.clone();
+        const zoomDuration = 2000; // 2 giây
+        const zoomStart = Date.now();
+        function animateZoom() {
+            const elapsed = Date.now() - zoomStart;
+            const t = Math.min(1, elapsed / zoomDuration);
+            // Ease-out cubic cho mượt
+            const ease = 1 - Math.pow(1 - t, 3);
+            camera.position.lerpVectors(startPos, targetPos, ease);
+            camera.lookAt(scene.position);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            if (t < 1) requestAnimationFrame(animateZoom);
+        }
+        animateZoom();
         const morphTexts = (cfg.morphTexts && cfg.morphTexts.length) ? cfg.morphTexts : ['happy', "women's day", 'em iu'];
         for (const text of morphTexts) {
             showText(text);
@@ -768,6 +807,70 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 }
             }
             await sleep(MORPH_WAIT_MS + 500);
+
+            // DỪNG LẠI TẠI ĐÂY: Chờ user click mới đi tiếp
+            await new Promise(resolve => {
+                const hint = document.getElementById('sphere-click-hint');
+                if (hint) {
+                    hint.innerText = "Click để xem ảnh";
+                    hint.classList.add('visible');
+                }
+
+                const canvasEl = renderer.domElement;
+                let isDown = false;
+                let startX = 0, startY = 0;
+                let wasDrag = false;
+
+                const downHandler = (e) => {
+                    const c = e.touches?.[0] || e;
+                    startX = c.clientX;
+                    startY = c.clientY;
+                    isDown = true;
+                    wasDrag = false;
+                };
+
+                const moveHandler = (e) => {
+                    if (!isDown) return;
+                    const c = e.touches?.[0] || e;
+                    if (Math.hypot(c.clientX - startX, c.clientY - startY) > 6) {
+                        wasDrag = true;
+                    }
+                };
+
+                const upHandler = (e) => {
+                    isDown = false;
+                    if (wasDrag) {
+                        wasDrag = false;
+                        return;
+                    }
+                    canvasEl.removeEventListener('mousedown', downHandler);
+                    canvasEl.removeEventListener('mousemove', moveHandler);
+                    canvasEl.removeEventListener('mouseup', upHandler);
+                    canvasEl.removeEventListener('mouseleave', leaveHandler);
+
+                    canvasEl.removeEventListener('touchstart', downHandler);
+                    canvasEl.removeEventListener('touchmove', moveHandler);
+                    canvasEl.removeEventListener('touchend', upHandlerTouch);
+
+                    if (hint) hint.classList.remove('visible');
+                    resolve();
+                };
+
+                const leaveHandler = () => { isDown = false; };
+                const upHandlerTouch = (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    upHandler(e);
+                };
+
+                canvasEl.addEventListener('mousedown', downHandler);
+                canvasEl.addEventListener('mousemove', moveHandler);
+                canvasEl.addEventListener('mouseup', upHandler);
+                canvasEl.addEventListener('mouseleave', leaveHandler);
+
+                canvasEl.addEventListener('touchstart', downHandler, { passive: true });
+                canvasEl.addEventListener('touchmove', moveHandler, { passive: true });
+                canvasEl.addEventListener('touchend', upHandlerTouch, { passive: false });
+            });
 
             // Hiển thị ảnh 2D đè lên canvas (không qua bloom → nét, không lóa)
             isMorphing = false;
@@ -828,6 +931,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             const positions = particlesGeometry.attributes.position.array;
             const effectStrengths = particlesGeometry.attributes.aEffectStrength.array;
             updateIdleAnimation(positions, effectStrengths, elapsedTime, deltaTime);
+            if (window.applyGestureForce) window.applyGestureForce(positions, sourcePositions, particleCount, camera);
             particlesGeometry.attributes.position.needsUpdate = true;
         }
         if (backgroundParticlesGeometry && backgroundSourcePositions) {
@@ -840,6 +944,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 pos[i3 + 1] = sourceVec.y + noise3D(sourceVec.y * 0.4, sourceVec.z * 0.4, elapsedTime * 0.18) * drift;
                 pos[i3 + 2] = sourceVec.z + noise3D(sourceVec.z * 0.4, sourceVec.x * 0.4, elapsedTime * 0.18) * drift;
             }
+            if (window.applyGestureForce) window.applyGestureForce(pos, backgroundSourcePositions, BACKGROUND_SCATTER_COUNT, camera);
             backgroundParticlesGeometry.attributes.position.needsUpdate = true;
         }
         if (morphImageOverlay && morphOverlayFadeStartTime != null && morphImageOverlay.material) {
@@ -937,10 +1042,10 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
     // SPHERE PHASE
     // ════════════════════════════════════════════════════════════════
     const SPHERE_IMAGES = (cfg.sphereImages && cfg.sphereImages.length) ? cfg.sphereImages : [];
-    const SP_RADIUS = 6, SP_ROWS = 6, SP_POLAR_MARGIN = 0.15;
+    const SP_RADIUS = 6, SP_ROWS = 5, SP_POLAR_MARGIN = 0.15;
     const SP_INTRO_RADIUS = 16, SP_INTRO_DURATION_MS = 2800, SP_INTRO_STAGGER_MS = 900;
     const SP_HINT_DELAY_MS = 5000, SP_HINT_DURATION_MS = 3000;
-    const SP_FLYOUT_BOUND = 10, SP_RAIN_SPEED = 0.025, SP_RAIN_COUNT = 450;
+    const SP_FLYOUT_BOUND = 20, SP_RAIN_SPEED = 0.025, SP_RAIN_COUNT = 20000;
     const SP_DRAG_THRESHOLD = 6;
     const isMobileSP = window.innerWidth < 768;
 
@@ -990,12 +1095,12 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
     }
 
     function spBuildSphere() {
-        let imgIdx = 0, midIdx = 0;
-        const midRows = [2, 3];
+        let globalIdx = 0;
         spPhiStart = Math.PI * SP_POLAR_MARGIN;
         spPhiEnd = Math.PI * (1 - SP_POLAR_MARGIN);
         spPhiRange = spPhiEnd - spPhiStart;
         const len = spTextures.length;
+
         for (let row = 0; row < SP_ROWS; row++) {
             const p1 = spPhiStart + (row / SP_ROWS) * spPhiRange;
             const p2 = spPhiStart + ((row + 1) / SP_ROWS) * spPhiRange;
@@ -1006,11 +1111,10 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             const tStep = (2 * Math.PI) / n;
             for (let col = 0; col < n; col++) {
                 const t = col * tStep;
-                let tex;
-                if (midRows.includes(row)) { tex = spTextures[midIdx % len]; midIdx++; }
-                else { tex = spTextures[imgIdx % len]; imgIdx++; }
+                let tex = spTextures[globalIdx % len];
+                globalIdx++;
                 const geo = spCreatePatch(SP_RADIUS, t, t + tStep, p1, p2, 12, 12);
-                const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 1 });
+                const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 1, alphaTest: 0.05, depthWrite: false });
                 const mesh = new THREE.Mesh(geo, mat);
                 const startPos = spRandOnSphere(SP_INTRO_RADIUS);
                 mesh.userData.introStartPos = startPos;
@@ -1053,37 +1157,51 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     function spCreateFloatingImages() {
         spFloatingGroup = new THREE.Group(); scene.add(spFloatingGroup);
-        const total = 40, grid = 16, used = [];
+        const total = spTextures.length;
         const glowTex = spGlowTexture(128);
-        function validPos(x, y, z, d) { return used.every(p => Math.hypot(x - p.x, y - p.y, z - p.z) >= d); }
-        function findPos(size) {
-            const d = size * 1.5 + 1;
-            for (let i = 0; i < 100; i++) {
-                const x = (Math.random() - .5) * grid, y = (Math.random() - .5) * grid, z = (Math.random() - .5) * grid;
-                if (validPos(x, y, z, d)) { used.push({ x, y, z }); return { x, y, z }; }
+
+        // ── Trái tim 3D tròn MẬP (giảm hệ số Z cho dày) cho ảnh bay ──
+        const imgHeartSize = 6;
+        const zCoeff = 0.6; // nhỏ = dày hơn (gốc 2.25)
+        const positions = [];
+        let placed = 0;
+        while (placed < total) {
+            const x = (Math.random() - 0.5) * 3.0;
+            const y = Math.random() * 2.8 - 1.3;
+            const z = (Math.random() - 0.5) * 3.2;  // mở rộng Z
+            const x2 = x * x, y2 = y * y, z2 = z * z;
+            const inner = x2 + zCoeff * z2 + y2 - 1;
+            const val = inner * inner * inner - x2 * y2 * y - (zCoeff / 20) * z2 * y2 * y;
+            if (val <= 0) {
+                positions.push({
+                    x: x * imgHeartSize,
+                    y: y * imgHeartSize,
+                    z: z * imgHeartSize
+                });
+                placed++;
             }
-            const a = Math.random() * Math.PI * 2, dist = grid / 2 + Math.random() * 2;
-            return { x: Math.cos(a) * dist, y: (Math.random() - .5) * grid, z: Math.sin(a) * dist };
         }
+
         for (let i = 0; i < total; i++) {
             const tex = spTextures[i % spTextures.length];
-            const sv = 0.5 + Math.random() * 2, w = 1.5 * sv, h = 1 * sv, cr = 0.15 * sv;
+            // Ảnh to hơn, cảm giác bay quanh người
+            const sv = 1.2 + Math.random() * 1.0, w = 1.5 * sv, h = 1 * sv, cr = 0.15 * sv;
             const ig = new THREE.Group();
             const goMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
             ig.add(new THREE.Mesh(spRoundedRectGeo(w * 2.2, h * 2.2, cr * 2.2), goMat));
             const gMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
             ig.add(new THREE.Mesh(spRoundedRectGeo(w * 1.5, h * 1.5, cr * 1.5), gMat));
-            const iMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0 });
+            const iMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0, alphaTest: 0.05, depthWrite: false });
             ig.add(new THREE.Mesh(spRoundedRectGeo(w, h, cr), iMat));
             const tPhi = Math.acos(2 * Math.random() - 1), tTheta = Math.random() * Math.PI * 2;
             ig.position.set(SP_RADIUS * .5 * Math.sin(tPhi) * Math.cos(tTheta), SP_RADIUS * .5 * Math.cos(tPhi), SP_RADIUS * .5 * Math.sin(tPhi) * Math.sin(tTheta));
-            const tp = findPos(Math.max(w, h));
+            const tp = positions[i];
             ig.userData = {
                 startPos: ig.position.clone(), targetPos: new THREE.Vector3(tp.x, tp.y, tp.z),
-                floatSpeedY: 0.3 + Math.random() * 0.5, floatAmplY: 0.1 + Math.random() * 0.2,
+                floatSpeedY: 0.3 + Math.random() * 0.5, floatAmplY: 0.08 + Math.random() * 0.12,
                 floatPhase: Math.random() * Math.PI * 2, delay: Math.random() * 0.5,
                 basePos: new THREE.Vector3(tp.x, tp.y, tp.z), iMat, gMat, goMat,
-                driftSpeed: 0.002 + Math.random() * 0.003, baseZ: tp.z,
+                driftSpeed: 0.003 + Math.random() * 0.003, baseZ: tp.z,
                 imageIndex: i % spTextures.length
             };
             spFloatingGroup.add(ig); spFloatingImages.push(ig);
@@ -1095,7 +1213,13 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         spIsExploded = true; spExplosionProgress = 0; spFadeProgress = 0;
         spMeshes.forEach(m => { if (m.material) m.material.transparent = true; });
         spExplosionStartTime = Date.now();
-        controls.autoRotate = false; controls.enableRotate = true; controls.maxDistance = 14;
+        controls.autoRotate = false; controls.enableRotate = true; controls.maxDistance = 30;
+        controls.minDistance = 2;
+        // Camera ở gần, giữa trái tim → cảm giác ảnh bay quanh mình
+        camera.position.set(0, 1, 6);
+        camera.lookAt(0, 1, 0);
+        controls.target.set(0, 1, 0);
+        controls.update();
         if (enableSphereFlyingImages) {
             spCreateFloatingImages();
         }
@@ -1127,11 +1251,27 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     // ── Lightbox xem ảnh chi tiết ──
     let lightboxOpen = false;
-    function openLightbox(imageUrl) {
+    function openLightbox(mediaUrl) {
         const lb = document.getElementById('imageLightbox');
         const img = document.getElementById('lightboxImage');
-        if (!lb || !img) return;
-        img.src = imageUrl;
+        const vid = document.getElementById('lightboxVideo');
+        if (!lb || !img || !vid) return;
+
+        const isVideo = mediaUrl.toLowerCase().endsWith('.mp4');
+        if (isVideo) {
+            img.style.display = 'none';
+            img.src = '';
+            vid.src = mediaUrl;
+            vid.style.display = 'block';
+            vid.play().catch(() => { });
+        } else {
+            vid.style.display = 'none';
+            vid.pause();
+            vid.src = '';
+            img.src = mediaUrl;
+            img.style.display = 'block';
+        }
+
         lb.style.display = 'flex';
         requestAnimationFrame(() => { lb.classList.add('visible'); });
         lightboxOpen = true;
@@ -1139,10 +1279,18 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
     }
     function closeLightbox() {
         const lb = document.getElementById('imageLightbox');
+        const vid = document.getElementById('lightboxVideo');
         if (!lb) return;
         lb.classList.remove('visible');
         lb.classList.add('hiding');
-        setTimeout(() => { lb.style.display = 'none'; lb.classList.remove('hiding'); }, 400);
+        setTimeout(() => {
+            lb.style.display = 'none';
+            lb.classList.remove('hiding');
+            if (vid) {
+                vid.pause();
+                vid.src = '';
+            }
+        }, 400);
         lightboxOpen = false;
         controls.enabled = true;
     }
@@ -1154,8 +1302,12 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         spMouse.x = (cx / window.innerWidth) * 2 - 1;
         spMouse.y = -(cy / window.innerHeight) * 2 + 1;
         spRaycaster.setFromCamera(spMouse, camera);
-        if (spWasDrag) { spWasDrag = false; return; }
-        spWasDrag = false;
+
+        // Cancel click action if the user was just dragging/rotating the view
+        if (spWasDrag) {
+            spWasDrag = false;
+            return;
+        }
 
         // Sau khi nổ: click vào ảnh bay → mở lightbox
         if (spIsExploded && spFloatingImages.length > 0) {
@@ -1170,8 +1322,11 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 const hitMesh = hits[0].object;
                 const parentGroup = hitMesh.parent;
                 if (parentGroup && parentGroup.userData && parentGroup.userData.imageIndex !== undefined) {
-                    const imgUrl = SPHERE_IMAGES[parentGroup.userData.imageIndex];
-                    if (imgUrl) { openLightbox(imgUrl); return; }
+                    const tex = spTextures[parentGroup.userData.imageIndex];
+                    if (tex && tex.userData && tex.userData.url) {
+                        openLightbox(tex.userData.url);
+                        return;
+                    }
                 }
             }
             return;
@@ -1368,7 +1523,8 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const sGeo = new THREE.BufferGeometry();
         sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
         sGeo.setAttribute('color', new THREE.BufferAttribute(sCol, 3));
-        spParticlesMesh = new THREE.Points(sGeo, new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.8 }));
+        const sMat = new THREE.PointsMaterial({ size: 0.1, vertexColors: true, transparent: true, opacity: 0.8, map: createSharpParticleTexture(), alphaTest: 0.05, depthWrite: false });
+        spParticlesMesh = new THREE.Points(sGeo, sMat);
         scene.add(spParticlesMesh);
 
         // rain up
@@ -1381,7 +1537,8 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         const rGeo = new THREE.BufferGeometry();
         rGeo.setAttribute('position', new THREE.BufferAttribute(rPos, 3));
         rGeo.setAttribute('color', new THREE.BufferAttribute(rCol, 3));
-        spRainMesh = new THREE.Points(rGeo, new THREE.PointsMaterial({ size: 0.035, vertexColors: true, transparent: true, opacity: 0.75 }));
+        const rMat = new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.75, map: createSharpParticleTexture(), alphaTest: 0.05, depthWrite: false });
+        spRainMesh = new THREE.Points(rGeo, rMat);
         spRainMesh.renderOrder = 998; scene.add(spRainMesh);
 
         // CSS particles background
@@ -1395,7 +1552,36 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
         // load textures then build sphere
         const loader = new THREE.TextureLoader(); loader.crossOrigin = 'anonymous';
-        Promise.all(SPHERE_IMAGES.map(url => new Promise(res => loader.load(url, res, undefined, () => res(null)))))
+
+        // Hỗ trợ load cả ảnh (jpg/png) và video (mp4)
+        Promise.all(SPHERE_IMAGES.map(url => {
+            return new Promise(res => {
+                if (url.toLowerCase().endsWith('.mp4')) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.crossOrigin = 'anonymous';
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.autoplay = true;
+                    video.play().catch(() => { }); // Cố gắng play ngay
+
+                    const texture = new THREE.VideoTexture(video);
+                    texture.colorSpace = THREE.LinearSRGBColorSpace;
+                    texture.userData = { url: url };
+                    // Đợi video có dữ liệu khung hình đầu tiên để chắc chắn không bị lỗi
+                    video.addEventListener('loadeddata', () => {
+                        res(texture);
+                    });
+                    video.addEventListener('error', () => res(null));
+                } else {
+                    loader.load(url, tex => {
+                        tex.userData = { url: url };
+                        res(tex);
+                    }, undefined, () => res(null));
+                }
+            });
+        }))
             .then(textures => {
                 spTextures = textures.filter(Boolean);
                 if (!spTextures.length) {
@@ -1412,12 +1598,23 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                 const canvasEl = renderer.domElement;
                 function spDown(e) { const c = e.touches?.[0] || e; spMouseDownX = c.clientX; spMouseDownY = c.clientY; spIsPointerDown = true; spWasDrag = false; }
                 function spMove(e) { const c = e.touches?.[0] || e; if (spIsPointerDown) { if (Math.hypot(c.clientX - spMouseDownX, c.clientY - spMouseDownY) > SP_DRAG_THRESHOLD) spWasDrag = true; } }
-                function spUp() { spIsPointerDown = false; }
-                canvasEl.addEventListener('mousedown', spDown); canvasEl.addEventListener('mouseup', spUp);
-                canvasEl.addEventListener('mouseleave', spUp); canvasEl.addEventListener('mousemove', spMove);
-                canvasEl.addEventListener('click', e => spHandleTap(e.clientX, e.clientY));
-                canvasEl.addEventListener('touchstart', spDown, { passive: true }); canvasEl.addEventListener('touchmove', spMove, { passive: true });
-                canvasEl.addEventListener('touchend', e => { spUp(); if (e.cancelable) e.preventDefault(); const c = e.changedTouches[0]; spHandleTap(c.clientX, c.clientY); }, { passive: false });
+                function spUp(e) {
+                    spIsPointerDown = false;
+                    if (!spWasDrag && e) {
+                        const c = e.changedTouches ? e.changedTouches[0] : e;
+                        if (c.clientX !== undefined) spHandleTap(c.clientX, c.clientY);
+                    }
+                    spWasDrag = false;
+                }
+
+                canvasEl.addEventListener('mousedown', spDown);
+                canvasEl.addEventListener('mouseup', spUp);
+                canvasEl.addEventListener('mouseleave', () => { spIsPointerDown = false; });
+                canvasEl.addEventListener('mousemove', spMove);
+
+                canvasEl.addEventListener('touchstart', spDown, { passive: true });
+                canvasEl.addEventListener('touchmove', spMove, { passive: true });
+                canvasEl.addEventListener('touchend', e => { if (e.cancelable) e.preventDefault(); spUp(e); }, { passive: false });
 
                 document.getElementById('btn-flying-corner').addEventListener('click', () => {
                     if (!spIsExploded || spIsFinalFlyUp) return;
@@ -1440,10 +1637,9 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
         if (spHasZoomedIn && !spIsExploded && !spHintFlyShown && spZoomInTime > 0 && (Date.now() - spZoomInTime) >= SP_HINT_DELAY_MS) { spHintFlyShown = true; spShowHint('Click lần nữa nào'); }
         // rain
         if (spRainMesh && spRainPositions) {
-            const n = spRainPositions.length / 3;
-            for (let j = 0; j < n; j++) {
+            for (let j = 0; j < SP_RAIN_COUNT; j++) {
                 spRainPositions[j * 3 + 1] += SP_RAIN_SPEED;
-                if (spRainPositions[j * 3 + 1] > 6) { spRainPositions[j * 3 + 1] = -SP_FLYOUT_BOUND; spRainPositions[j * 3] = (Math.random() - .5) * 2 * SP_FLYOUT_BOUND; spRainPositions[j * 3 + 2] = (Math.random() - .5) * 2 * SP_FLYOUT_BOUND; }
+                if (spRainPositions[j * 3 + 1] > SP_FLYOUT_BOUND) { spRainPositions[j * 3 + 1] = -SP_FLYOUT_BOUND; spRainPositions[j * 3] = (Math.random() - .5) * 2 * SP_FLYOUT_BOUND; spRainPositions[j * 3 + 2] = (Math.random() - .5) * 2 * SP_FLYOUT_BOUND; }
             }
             spRainMesh.geometry.attributes.position.needsUpdate = true;
         }
@@ -1454,7 +1650,7 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
             spGroup.children.forEach(child => { if (child.material) { child.material.opacity = Math.max(0, 1 - spFadeProgress); if (child.material.opacity <= 0) child.visible = false; } });
             spClickSphere.visible = false;
             if (spFloatingGroup) { spDriftTiltAngle += spDriftTiltDir * 0.0003; if (spDriftTiltAngle >= 0.25) { spDriftTiltAngle = 0.25; spDriftTiltDir = -1; } else if (spDriftTiltAngle <= -0.25) { spDriftTiltAngle = -0.25; spDriftTiltDir = 1; } spFloatingGroup.rotation.y = spDriftTiltAngle; }
-            const maxY = 10, minY = -10, fMaxY = 25;
+            const maxY = 10, minY = -10, fMaxY = 17;
             spFloatingImages.forEach((img, idx) => {
                 const d = img.userData, dp = Math.max(0, (spExplosionProgress - d.delay) / (1 - d.delay));
                 if (dp > 0) {
@@ -1464,10 +1660,30 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
                     const FAST = isMobileSP ? 25 : 18, FTAPER = isMobileSP ? 4 : 2.5, TEND = isMobileSP ? 7 : 5;
                     let dm = spIsFinalFlyUp ? 80 : (elapsed < FTAPER ? FAST : (elapsed < TEND ? FAST - (FAST - 1) * (elapsed - FTAPER) / (TEND - FTAPER) : 1));
                     d.basePos.y += d.driftSpeed * dm;
-                    if (eased < 1) { img.position.x = d.startPos.x + (d.targetPos.x - d.startPos.x) * eased; img.position.z = d.startPos.z + (d.targetPos.z - d.startPos.z) * eased; img.position.y = d.startPos.y + (d.targetPos.y - d.startPos.y) * eased + (d.basePos.y - d.targetPos.y) + fY; }
-                    else { img.position.x = d.basePos.x; img.position.y = d.basePos.y + fY; img.position.z = d.baseZ; }
-                    if (spIsFinalFlyUp) { if (d.basePos.y >= fMaxY) img.visible = false; }
-                    else { if (d.basePos.y > maxY) { d.basePos.y = minY; d.basePos.x = (Math.random() - .5) * 16; d.baseZ = (Math.random() - .5) * 16; img.position.x = d.basePos.x; img.position.z = d.baseZ; } }
+                    if (eased < 1) {
+                        img.position.x = d.startPos.x + (d.targetPos.x - d.startPos.x) * eased;
+                        img.position.z = d.startPos.z + (d.targetPos.z - d.startPos.z) * eased;
+                        img.position.y = d.startPos.y + (d.targetPos.y - d.startPos.y) * eased + (d.basePos.y - d.targetPos.y) + fY;
+                    } else {
+                        img.position.x = d.basePos.x;
+                        img.position.y = d.basePos.y + fY;
+                        img.position.z = d.baseZ;
+                    }
+
+                    if (spIsFinalFlyUp) {
+                        if (d.basePos.y >= fMaxY) img.visible = false;
+                    } else {
+                        if (d.basePos.y > maxY) {
+                            d.basePos.y = minY;
+                            d.basePos.x = (Math.random() - 0.5) * 13;
+                            d.baseZ = (Math.random() - 0.5) * 13;
+                            if (eased >= 1) {
+                                img.position.x = d.basePos.x;
+                                img.position.y = d.basePos.y + fY;
+                                img.position.z = d.baseZ;
+                            }
+                        }
+                    }
                     const op = Math.min(1, dp * 2), gp = 0.65 + Math.sin(spTime * 3 + idx * 0.5) * 0.25;
                     d.iMat.opacity = op; d.gMat.opacity = Math.min(1, op * gp); d.goMat.opacity = Math.min(1, op * gp * 0.75);
                 }
@@ -1655,5 +1871,22 @@ import { createNoise3D, createNoise4D } from 'simplex-noise';
 
     // Listener cho click phong bì lá thư (hoạt động cả khi không có sphere)
     document.getElementById('letter-envelope-img')?.addEventListener('click', handleLetterEnvelopeClick);
+
+    // Bấm ra ngoài (toàn màn hình overlay) cũng mở thư
+    const cupidOverlay = document.getElementById('cupid-letter-overlay');
+    if (cupidOverlay) {
+        function onOverlayTap(e) {
+            if (cupidLetterState === 'showingLetter') return;
+            if (e.target.closest('#cupid-letter-frame')) return;
+            handleLetterEnvelopeClick();
+        }
+        cupidOverlay.addEventListener('click', onOverlayTap);
+        cupidOverlay.addEventListener('touchend', function (e) {
+            if (cupidLetterState === 'letterImage') {
+                e.preventDefault();
+                onOverlayTap(e);
+            }
+        }, { passive: false });
+    }
 
 })(); // end async IIFE
